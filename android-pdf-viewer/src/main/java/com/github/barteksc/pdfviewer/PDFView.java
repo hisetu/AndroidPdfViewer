@@ -1492,35 +1492,26 @@ public class PDFView extends RelativeLayout {
             int index = fileUrl.lastIndexOf("/");
             String fileName = fileUrl.substring(index);
             final File file = new File(SDPath, fileName);
-            if(file.exists()){
-                //文件存在
-                if(onFileDownloadCompleteListener!=null){
-                    onFileDownloadCompleteListener.onDownloadComplete(file);
+            DownloadUtil.get().download(fileUrl, SDPath, new DownloadUtil.OnDownloadListener() {
+                @Override
+                public void onDownloadSuccess(File file) {
+                    if(onFileDownloadCompleteListener!=null){
+                        onFileDownloadCompleteListener.onDownloadComplete(file);
+                    }
+                    PDFView.this.fromFile(file);
+                    load();
                 }
-                PDFView.this.fromFile(file);
-                load();
-            }else{
-                DownloadUtil.get().download(fileUrl, SDPath, new DownloadUtil.OnDownloadListener() {
-                    @Override
-                    public void onDownloadSuccess(File file) {
-                        if(onFileDownloadCompleteListener!=null){
-                            onFileDownloadCompleteListener.onDownloadComplete(file);
-                        }
-                        PDFView.this.fromFile(file);
-                        load();
-                    }
 
-                    @Override
-                    public void onDownloading(int progress) {
+                @Override
+                public void onDownloading(int progress) {
 
-                    }
+                }
 
-                    @Override
-                    public void onDownloadFailed() {
+                @Override
+                public void onDownloadFailed() {
 
-                    }
-                });
-            }
+                }
+            });
         }
     }
 }
