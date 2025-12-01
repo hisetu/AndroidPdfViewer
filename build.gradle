@@ -1,11 +1,14 @@
 
 buildscript {
+    ext.kotlin_version = '1.8.22'
+    ext.compose_version = '1.4.3'
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.2.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -18,7 +21,7 @@ allprojects {
 
 ext {
     tools = [
-            minSdk      : 19,
+            minSdk      : 21,
             targetSdk   : 31,
             compileSdk  : 31,
             versionName: '3.2.0-beta.3'
