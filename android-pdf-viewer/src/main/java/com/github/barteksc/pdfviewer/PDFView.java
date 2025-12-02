@@ -1273,6 +1273,21 @@ public class PDFView extends RelativeLayout {
         return renderDuringScale;
     }
 
+    /**
+     * Set the sensitivity of pinch zoom gestures.
+     * Higher values make zoom more responsive, which can be useful on high-resolution displays.
+     * Default value is 1.5f. Use 1.0f for standard behavior, or higher values (e.g., 2.0f) 
+     * for increased sensitivity on 4K displays.
+     * 
+     * @param scaleSensitivity The sensitivity multiplier (must be positive, typically 1.0-3.0)
+     */
+    public void setZoomSensitivity(float scaleSensitivity) {
+        if (scaleSensitivity <= 0) {
+            throw new IllegalArgumentException("Scale sensitivity must be positive");
+        }
+        dragPinchManager.setScaleSensitivity(scaleSensitivity);
+    }
+
     /** Returns null if document is not loaded */
     public PdfDocument.Meta getDocumentMeta() {
         if (pdfFile == null) {
@@ -1386,6 +1401,8 @@ public class PDFView extends RelativeLayout {
         private boolean pageSnap = false;
 
         private boolean nightMode = false;
+
+        private float zoomSensitivity = 1.5f;
 
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
@@ -1526,6 +1543,19 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        /**
+         * Set the sensitivity of pinch zoom gestures.
+         * Higher values make zoom more responsive on high-resolution displays.
+         * Default is 1.5f. Recommended 2.0f-2.5f for 4K displays.
+         * 
+         * @param zoomSensitivity The sensitivity multiplier (must be positive, typically 1.0-3.0)
+         * @return this Configurator
+         */
+        public Configurator zoomSensitivity(float zoomSensitivity) {
+            this.zoomSensitivity = zoomSensitivity;
+            return this;
+        }
+
         public Configurator disableLongpress() {
             PDFView.this.dragPinchManager.disableLongpress();
             return this;
@@ -1562,6 +1592,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setFitEachPage(fitEachPage);
             PDFView.this.setPageSnap(pageSnap);
             PDFView.this.setPageFling(pageFling);
+            PDFView.this.setZoomSensitivity(zoomSensitivity);
 
             if (pageNumbers != null) {
                 PDFView.this.load(documentSource, password, pageNumbers);

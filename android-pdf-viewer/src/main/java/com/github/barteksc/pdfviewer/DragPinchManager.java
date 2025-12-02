@@ -46,6 +46,9 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     private boolean scrolling = false;
     private boolean scaling = false;
     private boolean enabled = false;
+    
+    /** Sensitivity factor for pinch zoom gestures. Higher values make zoom more responsive. */
+    private float scaleSensitivity = 1.5f;
 
     DragPinchManager(PDFView pdfView, AnimationManager animationManager) {
         this.pdfView = pdfView;
@@ -256,9 +259,18 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
                 (int) minX, (int) maxX, (int) minY, (int) maxY);
     }
 
+    void setScaleSensitivity(float scaleSensitivity) {
+        this.scaleSensitivity = scaleSensitivity;
+    }
+
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
         float dr = detector.getScaleFactor();
+        // Increase sensitivity by amplifying the scale change
+        // This helps on high-resolution displays where pinch gestures may feel less responsive
+        float scaleChange = (dr - 1.0f) * scaleSensitivity;
+        dr = 1.0f + scaleChange;
+        
         float wantedZoom = pdfView.getZoom() * dr;
         float minZoom = Math.min(MINIMUM_ZOOM, pdfView.getMinZoom());
         float maxZoom = Math.min(MAXIMUM_ZOOM, pdfView.getMaxZoom());
