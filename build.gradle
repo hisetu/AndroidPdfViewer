@@ -5,7 +5,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.0'
+        // Upgraded to be compatible with Gradle 8.5
+        classpath 'com.android.tools.build:gradle:8.1.4'
     }
 }
 
@@ -19,8 +20,8 @@ allprojects {
 ext {
     tools = [
             minSdk      : 19,
-            targetSdk   : 31,
-            compileSdk  : 31,
+            targetSdk   : 33,  // Updated for AGP 8.x
+            compileSdk  : 33,  // Updated for AGP 8.x
             versionName: '3.2.0-beta.3'
     ]
 }

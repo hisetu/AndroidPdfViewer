@@ -13,6 +13,7 @@ repositories {
 apply plugin: 'com.android.application'
 
 android {
+    namespace 'com.github.barteksc.sample'
     compileSdkVersion rootProject.tools.compileSdk
 
     defaultConfig {

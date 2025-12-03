@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 
 android {
+    namespace 'com.github.barteksc.pdfviewer'
     compileSdkVersion rootProject.tools.compileSdk
 
     defaultConfig {

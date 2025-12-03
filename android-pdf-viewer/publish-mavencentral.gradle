@@ -65,7 +65,7 @@ afterEvaluate {
         publications {
             release(MavenPublication) {
                 if (isAndroid) {
-                    from components.release
+                    from components.findByName('release')
                 } else {
                     from components.java
                 }
