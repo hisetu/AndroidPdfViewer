@@ -43,6 +43,15 @@ import com.shockwave.pdfium.PdfDocument;
 
 import java.util.List;
 
+/**
+ * Sample activity demonstrating PDFView usage.
+ * 
+ * This example shows:
+ * - Loading PDF from assets
+ * - Loading PDF from URI (file picker)
+ * - Using zoomSensitivity to adjust pinch-zoom responsiveness
+ *   (set to 2.0 for doubled sensitivity, useful for high-resolution displays)
+ */
 public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener,
         OnPageErrorListener {
 
@@ -148,6 +157,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .spacing(10) // in dp
                 .onPageError(this)
                 .pageFitPolicy(FitPolicy.BOTH)
+                .zoomSensitivity(2.0f) // Adjust zoom sensitivity (default is 1.0)
                 .load();
     }
 
@@ -162,6 +172,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .scrollHandle(new DefaultScrollHandle(this))
                 .spacing(10) // in dp
                 .onPageError(this)
+                .zoomSensitivity(2.0f) // Adjust zoom sensitivity (default is 1.0)
                 .load();
     }
 
