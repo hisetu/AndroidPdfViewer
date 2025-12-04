@@ -26,6 +26,8 @@ import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -42,6 +44,7 @@ import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.shockwave.pdfium.PdfDocument;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Sample activity demonstrating PDFView usage.
@@ -50,7 +53,8 @@ import java.util.List;
  * - Loading PDF from assets
  * - Loading PDF from URI (file picker)
  * - Using zoomSensitivity to adjust pinch-zoom responsiveness
- *   (set to 2.0 for doubled sensitivity, useful for high-resolution displays)
+ *   (adjustable via SeekBar from 0.5x to 5.0x)
+ * - Dynamic adjustment of zoom sensitivity in real-time
  */
 public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener,
         OnPageErrorListener {
@@ -67,6 +71,11 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
     Uri uri;
     Integer pageNumber = 0;
     String pdfFileName;
+    
+    // Zoom sensitivity control
+    private SeekBar sensitivitySeekBar;
+    private TextView sensitivityValueText;
+    private float currentZoomSensitivity = 1.0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,13 +83,55 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         setContentView(R.layout.activity_main);
 
         pdfView = findViewById(R.id.pdfView);
+        sensitivitySeekBar = findViewById(R.id.sensitivitySeekBar);
+        sensitivityValueText = findViewById(R.id.sensitivityValue);
 
         if (savedInstanceState != null) {
             uri = savedInstanceState.getParcelable("uri");
             pageNumber = savedInstanceState.getInt("pageNumber", 0);
+            currentZoomSensitivity = savedInstanceState.getFloat("zoomSensitivity", 1.0f);
         }
 
+        setupSensitivityControl();
         afterViews();
+    }
+
+    private void setupSensitivityControl() {
+        // SeekBar range: 0-40, mapping to 0.5x - 5.0x
+        // Progress 0 = 0.5x, Progress 10 = 1.0x, Progress 40 = 5.0x
+        int initialProgress = (int) ((currentZoomSensitivity - 0.5f) * 10);
+        sensitivitySeekBar.setProgress(initialProgress);
+        updateSensitivityText(currentZoomSensitivity);
+
+        sensitivitySeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // Convert progress (0-40) to sensitivity (0.5-5.0)
+                currentZoomSensitivity = 0.5f + (progress * 0.1f);
+                updateSensitivityText(currentZoomSensitivity);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Reload PDF with new sensitivity
+                if (uri != null) {
+                    displayFromUri(uri);
+                } else {
+                    displayFromAsset(SAMPLE_FILE);
+                }
+                Toast.makeText(PDFViewActivity.this, 
+                    String.format(Locale.US, "Zoom sensitivity set to %.1fx", currentZoomSensitivity), 
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateSensitivityText(float sensitivity) {
+        sensitivityValueText.setText(String.format(Locale.US, "%.1fx", sensitivity));
     }
 
     @Override
@@ -90,6 +141,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
             outState.putParcelable("uri", uri);
         }
         outState.putInt("pageNumber", pageNumber);
+        outState.putFloat("zoomSensitivity", currentZoomSensitivity);
     }
 
     @Override
@@ -157,7 +209,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .spacing(10) // in dp
                 .onPageError(this)
                 .pageFitPolicy(FitPolicy.BOTH)
-                .zoomSensitivity(2.0f) // Adjust zoom sensitivity (default is 1.0)
+                .zoomSensitivity(currentZoomSensitivity) // Use current sensitivity from SeekBar
                 .load();
     }
 
@@ -172,7 +224,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .scrollHandle(new DefaultScrollHandle(this))
                 .spacing(10) // in dp
                 .onPageError(this)
-                .zoomSensitivity(2.0f) // Adjust zoom sensitivity (default is 1.0)
+                .zoomSensitivity(currentZoomSensitivity) // Use current sensitivity from SeekBar
                 .load();
     }
 
