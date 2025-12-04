@@ -21,18 +21,14 @@ android {
         targetSdkVersion rootProject.tools.targetSdk
         versionCode 3
         versionName "${rootProject.tools.versionName}"
+    }
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = ["androidManifestFile": "$projectDir/src/main/AndroidManifest.xml".toString()]
-            }
-        }
+    buildFeatures {
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation project(':android-pdf-viewer')
     implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'org.androidannotations:androidannotations-api:4.6.0'
-    annotationProcessor "org.androidannotations:androidannotations:4.6.0"
 }
