@@ -135,14 +135,14 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                     displayFromAsset(SAMPLE_FILE);
                 }
                 Toast.makeText(PDFViewActivity.this, 
-                    String.format(Locale.US, "Zoom sensitivity set to %.1fx", currentZoomSensitivity), 
+                    String.format(Locale.US, "縮放速度設為 %.1f 倍", currentZoomSensitivity), 
                     Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void updateSensitivityText(float sensitivity) {
-        sensitivityValueText.setText(String.format(Locale.US, "%.1fx", sensitivity));
+        sensitivityValueText.setText(String.format(Locale.US, "%.1f倍", sensitivity));
     }
 
     private void setupMinSpanControl() {
@@ -167,14 +167,14 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 // Apply new min span setting
                 pdfView.setMinSpanToStartZoomDp(currentMinSpanDp);
                 Toast.makeText(PDFViewActivity.this, 
-                    String.format(Locale.US, "Min span to start zoom: %.0fdp", currentMinSpanDp), 
+                    String.format(Locale.US, "觸發縮放間距設為 %.0f", currentMinSpanDp), 
                     Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void updateMinSpanText(float minSpanDp) {
-        minSpanValueText.setText(String.format(Locale.US, "%.0fdp", minSpanDp));
+        minSpanValueText.setText(String.format(Locale.US, "%.0f", minSpanDp));
     }
 
     @Override
