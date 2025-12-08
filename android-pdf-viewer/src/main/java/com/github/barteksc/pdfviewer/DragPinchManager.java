@@ -19,7 +19,6 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import com.github.barteksc.pdfviewer.model.LinkTapEvent;
@@ -35,13 +34,13 @@ import static com.github.barteksc.pdfviewer.util.Constants.Pinch.MINIMUM_ZOOM;
  * This Manager takes care of moving the PDFView,
  * set its zoom track user actions.
  */
-class DragPinchManager implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, ScaleGestureDetector.OnScaleGestureListener, View.OnTouchListener {
+class DragPinchManager implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, CustomScaleGestureDetector.OnScaleGestureListener, View.OnTouchListener {
 
     private PDFView pdfView;
     private AnimationManager animationManager;
 
     private GestureDetector gestureDetector;
-    private ScaleGestureDetector scaleGestureDetector;
+    private CustomScaleGestureDetector scaleGestureDetector;
 
     private boolean scrolling = false;
     private boolean scaling = false;
@@ -54,7 +53,7 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         this.pdfView = pdfView;
         this.animationManager = animationManager;
         gestureDetector = new GestureDetector(pdfView.getContext(), this);
-        scaleGestureDetector = new ScaleGestureDetector(pdfView.getContext(), this);
+        scaleGestureDetector = new CustomScaleGestureDetector(pdfView.getContext(), this);
         pdfView.setOnTouchListener(this);
     }
 
@@ -263,8 +262,27 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         this.scaleSensitivity = scaleSensitivity;
     }
 
+    /**
+     * Set the minimum span (distance between fingers) in pixels required to start a scale gesture.
+     * Lower values make the zoom trigger more easily with less finger movement.
+     * 
+     * @param minSpan Minimum span in pixels. Use 0 for immediate response.
+     */
+    void setMinSpanToStartScale(float minSpan) {
+        scaleGestureDetector.setMinSpanToStart(minSpan);
+    }
+
+    /**
+     * Set the minimum span in dp (density-independent pixels).
+     * 
+     * @param minSpanDp Minimum span in dp. Use 0 for immediate response.
+     */
+    void setMinSpanToStartScaleDp(float minSpanDp) {
+        scaleGestureDetector.setMinSpanToStartDp(minSpanDp);
+    }
+
     @Override
-    public boolean onScale(ScaleGestureDetector detector) {
+    public boolean onScale(CustomScaleGestureDetector detector) {
         float dr = detector.getScaleFactor();
         // Increase sensitivity by amplifying the scale change
         // This helps on high-resolution displays where pinch gestures may feel less responsive
@@ -284,13 +302,13 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     }
 
     @Override
-    public boolean onScaleBegin(ScaleGestureDetector detector) {
+    public boolean onScaleBegin(CustomScaleGestureDetector detector) {
         scaling = true;
         return true;
     }
 
     @Override
-    public void onScaleEnd(ScaleGestureDetector detector) {
+    public void onScaleEnd(CustomScaleGestureDetector detector) {
         pdfView.loadPages();
         hideHandle();
         scaling = false;

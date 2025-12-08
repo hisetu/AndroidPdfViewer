@@ -1288,6 +1288,30 @@ public class PDFView extends RelativeLayout {
         dragPinchManager.setScaleSensitivity(scaleSensitivity);
     }
 
+    /**
+     * Set the minimum span (distance between fingers) in pixels required to start a pinch-zoom gesture.
+     * Lower values make zoom trigger more easily with less finger movement.
+     * This is useful for high-resolution displays where the default Android threshold may require
+     * too large a physical finger distance.
+     * 
+     * @param minSpan Minimum span in pixels. Use 0 for immediate response when two fingers touch.
+     *                Default is approximately 10dp. Typical values: 0-50 for very responsive.
+     */
+    public void setMinSpanToStartZoom(float minSpan) {
+        dragPinchManager.setMinSpanToStartScale(minSpan);
+    }
+
+    /**
+     * Set the minimum span (distance between fingers) in dp required to start a pinch-zoom gesture.
+     * This method uses density-independent pixels for consistent behavior across screen densities.
+     * 
+     * @param minSpanDp Minimum span in dp. Use 0 for immediate response when two fingers touch.
+     *                  Default is 10dp. Typical values: 0-20dp for very responsive.
+     */
+    public void setMinSpanToStartZoomDp(float minSpanDp) {
+        dragPinchManager.setMinSpanToStartScaleDp(minSpanDp);
+    }
+
     /** Returns null if document is not loaded */
     public PdfDocument.Meta getDocumentMeta() {
         if (pdfFile == null) {
@@ -1403,6 +1427,9 @@ public class PDFView extends RelativeLayout {
         private boolean nightMode = false;
 
         private float zoomSensitivity = 1.5f;
+        
+        /** Minimum span in dp to start zoom gesture. -1 means use default. */
+        private float minSpanToStartZoomDp = -1f;
 
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
@@ -1556,6 +1583,21 @@ public class PDFView extends RelativeLayout {
             return this;
         }
 
+        /**
+         * Set the minimum span (distance between fingers) in dp required to start a pinch-zoom gesture.
+         * Lower values make zoom trigger more easily with less finger movement.
+         * This is useful for high-resolution displays where Android's default threshold requires
+         * too large a physical finger distance before zoom begins.
+         * 
+         * @param minSpanDp Minimum span in dp. Use 0 for immediate response when two fingers touch.
+         *                  Default is 10dp. Recommended 0-5dp for very responsive zoom trigger.
+         * @return this Configurator
+         */
+        public Configurator minSpanToStartZoom(float minSpanDp) {
+            this.minSpanToStartZoomDp = minSpanDp;
+            return this;
+        }
+
         public Configurator disableLongpress() {
             PDFView.this.dragPinchManager.disableLongpress();
             return this;
@@ -1593,6 +1635,9 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setPageSnap(pageSnap);
             PDFView.this.setPageFling(pageFling);
             PDFView.this.setZoomSensitivity(zoomSensitivity);
+            if (minSpanToStartZoomDp >= 0) {
+                PDFView.this.setMinSpanToStartZoomDp(minSpanToStartZoomDp);
+            }
 
             if (pageNumbers != null) {
                 PDFView.this.load(documentSource, password, pageNumbers);

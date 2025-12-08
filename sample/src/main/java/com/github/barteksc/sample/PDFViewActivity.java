@@ -54,6 +54,8 @@ import java.util.Locale;
  * - Loading PDF from URI (file picker)
  * - Using zoomSensitivity to adjust pinch-zoom responsiveness
  *   (adjustable via SeekBar from 0.5x to 5.0x)
+ * - Using minSpanToStartZoom to adjust the minimum finger distance to trigger zoom
+ *   (adjustable via SeekBar from 0dp to 50dp)
  * - Dynamic adjustment of zoom sensitivity in real-time
  */
 public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener,
@@ -76,6 +78,11 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
     private SeekBar sensitivitySeekBar;
     private TextView sensitivityValueText;
     private float currentZoomSensitivity = 1.0f;
+    
+    // Min span to start zoom control
+    private SeekBar minSpanSeekBar;
+    private TextView minSpanValueText;
+    private float currentMinSpanDp = 0f;  // Default to 0 for immediate zoom trigger
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,14 +92,18 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         pdfView = findViewById(R.id.pdfView);
         sensitivitySeekBar = findViewById(R.id.sensitivitySeekBar);
         sensitivityValueText = findViewById(R.id.sensitivityValue);
+        minSpanSeekBar = findViewById(R.id.minSpanSeekBar);
+        minSpanValueText = findViewById(R.id.minSpanValue);
 
         if (savedInstanceState != null) {
             uri = savedInstanceState.getParcelable("uri");
             pageNumber = savedInstanceState.getInt("pageNumber", 0);
             currentZoomSensitivity = savedInstanceState.getFloat("zoomSensitivity", 1.0f);
+            currentMinSpanDp = savedInstanceState.getFloat("minSpanDp", 0f);
         }
 
         setupSensitivityControl();
+        setupMinSpanControl();
         afterViews();
     }
 
@@ -134,6 +145,38 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         sensitivityValueText.setText(String.format(Locale.US, "%.1fx", sensitivity));
     }
 
+    private void setupMinSpanControl() {
+        // SeekBar range: 0-50, mapping to 0dp - 50dp
+        int initialProgress = (int) currentMinSpanDp;
+        minSpanSeekBar.setProgress(initialProgress);
+        updateMinSpanText(currentMinSpanDp);
+
+        minSpanSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                currentMinSpanDp = progress;
+                updateMinSpanText(currentMinSpanDp);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Apply new min span setting
+                pdfView.setMinSpanToStartZoomDp(currentMinSpanDp);
+                Toast.makeText(PDFViewActivity.this, 
+                    String.format(Locale.US, "Min span to start zoom: %.0fdp", currentMinSpanDp), 
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateMinSpanText(float minSpanDp) {
+        minSpanValueText.setText(String.format(Locale.US, "%.0fdp", minSpanDp));
+    }
+
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -142,6 +185,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         }
         outState.putInt("pageNumber", pageNumber);
         outState.putFloat("zoomSensitivity", currentZoomSensitivity);
+        outState.putFloat("minSpanDp", currentMinSpanDp);
     }
 
     @Override
@@ -210,6 +254,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .onPageError(this)
                 .pageFitPolicy(FitPolicy.BOTH)
                 .zoomSensitivity(currentZoomSensitivity) // Use current sensitivity from SeekBar
+                .minSpanToStartZoom(currentMinSpanDp)   // Use current min span from SeekBar
                 .load();
     }
 
@@ -225,6 +270,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .spacing(10) // in dp
                 .onPageError(this)
                 .zoomSensitivity(currentZoomSensitivity) // Use current sensitivity from SeekBar
+                .minSpanToStartZoom(currentMinSpanDp)   // Use current min span from SeekBar
                 .load();
     }
 
