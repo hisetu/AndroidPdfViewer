@@ -52,13 +52,20 @@ Add to _build.gradle_:
 allprojects {
   repositories {
     ...
+    maven {
+      url = uri("https://maven.pkg.github.com/hisetu/AndroidPdfViewer")
+      credentials {
+        username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+        password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+      }
+    }
     mavenCentral()
     ...
   }
 }
 ```
 
-`implementation 'com.github.mhiew:android-pdf-viewer:3.2.0-beta.3'`
+`implementation 'com.github.hisetu:android-pdf-viewer:3.2.0-beta.3-zoomfix1'`
 
 ## ProGuard
 If you are using ProGuard, add following rule to proguard config file:

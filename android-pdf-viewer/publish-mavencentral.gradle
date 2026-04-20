@@ -1,6 +1,8 @@
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
+import java.net.HttpURLConnection
+
 def isAndroid = plugins.hasPlugin('com.android.library')
 
 task sourcesJar(type: Jar) {
@@ -43,6 +45,8 @@ ext["signing.secretKeyRingFile"] = ''
 ext["ossrhUsername"] = ''
 ext["ossrhPassword"] = ''
 ext["sonatypeStagingProfileId"] = ''
+ext["gpr.user"] = ''
+ext["gpr.key"] = ''
 
 File secretPropsFile = project.rootProject.file('local.properties')
 if (secretPropsFile.exists()) {
@@ -60,6 +64,63 @@ if (secretPropsFile.exists()) {
     ext["sonatypeStagingProfileId"] = System.getenv('SONATYPE_STAGING_PROFILE_ID')
 }
 
+ext["gpr.user"] = project.findProperty('gpr.user') ?: ext["gpr.user"] ?: System.getenv('GITHUB_ACTOR')
+ext["gpr.key"] = project.findProperty('gpr.key') ?: ext["gpr.key"] ?: System.getenv('GITHUB_TOKEN')
+
+def readConnectionBody = { HttpURLConnection connection ->
+    InputStream stream = null
+    try {
+        stream = connection.responseCode >= 400 ? connection.errorStream : connection.inputStream
+        return stream?.getText('UTF-8')?.trim()
+    } catch (IOException ignored) {
+        return ''
+    } finally {
+        stream?.close()
+    }
+}
+
+def getGitHubPackagesCredentials = {
+    def user = project.ext["gpr.user"]?.toString()
+    def key = project.ext["gpr.key"]?.toString()
+
+    if (!user) {
+        throw new GradleException('Missing GitHub Packages username. Set gpr.user or GITHUB_ACTOR.')
+    }
+    if (!key) {
+        throw new GradleException('Missing GitHub Packages token. Set gpr.key or GITHUB_TOKEN.')
+    }
+
+    [user: user, key: key]
+}
+
+def uploadFileToGitHubPackages = { File sourceFile, String targetUrl, Map credentials ->
+    HttpURLConnection connection = (HttpURLConnection) new URL(targetUrl).openConnection()
+    def auth = "${credentials.user}:${credentials.key}".bytes.encodeBase64().toString()
+
+    connection.requestMethod = 'PUT'
+    connection.doOutput = true
+    connection.instanceFollowRedirects = false
+    connection.setRequestProperty('Authorization', "Basic ${auth}")
+    connection.setRequestProperty('Content-Type', 'application/octet-stream')
+    connection.setRequestProperty('User-Agent', 'gradle-github-packages-uploader')
+    connection.setFixedLengthStreamingMode(sourceFile.length())
+
+    sourceFile.withInputStream { input ->
+        connection.outputStream.withStream { output ->
+            output << input
+        }
+    }
+
+    int responseCode = connection.responseCode
+    if (responseCode < 200 || responseCode >= 300) {
+        def responseBody = readConnectionBody(connection)
+        throw new GradleException("Failed to upload ${sourceFile.name} to ${targetUrl} (${responseCode})${responseBody ? ": ${responseBody}" : ''}")
+    }
+
+    def responseBody = readConnectionBody(connection)
+    logger.lifecycle("Uploaded ${sourceFile.name} (${responseCode})${responseBody ? ": ${responseBody}" : ''}")
+}
+
 afterEvaluate {
     publishing {
         publications {
@@ -68,8 +129,8 @@ afterEvaluate {
                     from components.findByName('release')
                 } else {
                     from components.java
+                    artifact sourcesJar
                 }
-                artifact sourcesJar
                 artifact javadocJar
 
                 // Set within Library Gradle
@@ -80,7 +141,7 @@ afterEvaluate {
                 pom {
                     name = PUBLISH_ARTIFACT_ID
                     description = 'Fork of Barteksc AndroidPdfViewer - Android view for displaying PDFs rendered with PdfiumAndroid'
-                    url = 'https://github.com/mhiew/AndroidPdfViewer'
+                    url = 'https://github.com/hisetu/AndroidPdfViewer'
                     licenses {
                         license {
                             name = 'The Apache License, Version 2.0'
@@ -89,34 +150,59 @@ afterEvaluate {
                     }
                     developers {
                         developer {
-                            id = 'min'
-                            name = 'Min Hiew'
+                            id = 'hisetu'
+                            name = 'hisetu'
                         }
                     }
                     scm {
-                        connection = 'scm:git:https://github.com/mhiew/AndroidPdfViewer'
-                        developerConnection = 'scm:git:ssh:github.com:mhiew/AndroidPdfViewer.git'
-                        url = 'https://github.com/mhiew/AndroidPdfViewer'
+                        connection = 'scm:git:https://github.com/hisetu/AndroidPdfViewer'
+                        developerConnection = 'scm:git:ssh:git@github.com:hisetu/AndroidPdfViewer.git'
+                        url = 'https://github.com/hisetu/AndroidPdfViewer'
                     }
                 }
             }
         }
-        // The repository to publish to, Sonatype/MavenCentral
-        repositories {
-            maven {
-                // This is an arbitrary name, you may also use "mavencentral" or
-                // any other name that's descriptive for you
-                name = "sonatype"
-                url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                credentials {
-                    username ossrhUsername
-                    password ossrhPassword
-                }
+    }
+
+    tasks.register("publishReleasePublicationTo${PUBLISH_REPOSITORY_NAME}Repository") {
+        group = 'publishing'
+        description = "Publishes the release publication to ${PUBLISH_REPOSITORY_NAME} using authenticated PUT uploads"
+        dependsOn 'publishReleasePublicationToMavenLocal'
+
+        doLast {
+            def credentials = getGitHubPackagesCredentials()
+            def groupPath = PUBLISH_GROUP_ID.replace('.', '/')
+            def mavenLocalPath = System.getProperty('maven.repo.local') ?: new File(System.getProperty('user.home'), '.m2/repository').absolutePath
+            def versionDir = new File(mavenLocalPath, "${groupPath}/${PUBLISH_ARTIFACT_ID}/${PUBLISH_VERSION}")
+
+            if (!versionDir.directory) {
+                throw new GradleException("Expected Maven local publication directory does not exist: ${versionDir}")
+            }
+
+            def publicationFiles = versionDir.listFiles()?.findAll { file ->
+                file.isFile() &&
+                        !file.name.endsWith('.md5') &&
+                        !file.name.endsWith('.sha1') &&
+                        !file.name.endsWith('.sha256') &&
+                        !file.name.endsWith('.sha512')
+            }?.sort { it.name }
+
+            if (!publicationFiles) {
+                throw new GradleException("No publication files found in ${versionDir}")
+            }
+
+            publicationFiles.each { publicationFile ->
+                def targetUrl = "${PUBLISH_REPOSITORY_URL}/${groupPath}/${PUBLISH_ARTIFACT_ID}/${PUBLISH_VERSION}/${publicationFile.name}"
+                uploadFileToGitHubPackages(publicationFile, targetUrl, credentials)
             }
         }
     }
 }
 
 signing {
-    sign publishing.publications
+    def hasSigningKey = project.ext["signing.keyId"]
+    required { hasSigningKey }
+    if (hasSigningKey) {
+        sign publishing.publications
+    }
 }

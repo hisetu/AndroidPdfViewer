@@ -11,6 +11,12 @@ android {
         versionName "${rootProject.tools.versionName}"
     }
 
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
+
 }
 
 dependencies {
@@ -20,9 +26,11 @@ dependencies {
 
 // Maven Publishing
 ext {
-    PUBLISH_GROUP_ID = 'com.github.mhiew'
-    PUBLISH_VERSION = "${rootProject.tools.versionName}"
+    PUBLISH_GROUP_ID = 'com.github.hisetu'
+    PUBLISH_VERSION = "${rootProject.tools.versionName}-zoomfix1"
     PUBLISH_ARTIFACT_ID = 'android-pdf-viewer'
+    PUBLISH_REPOSITORY_NAME = 'GitHubPackages'
+    PUBLISH_REPOSITORY_URL = 'https://maven.pkg.github.com/hisetu/AndroidPdfViewer'
 }
 
 apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"
